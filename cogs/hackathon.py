@@ -12,7 +12,13 @@ class Hackathon(commands.Cog):
         self.bot = bot
         self.db_path = "./data/database.json"
         self.sent_urls = self.load_data()
-        self.target_channel_id = int(os.getenv('CHANNEL_ID', 0))
+        
+        # ✅ [Modified] Load Hackathon Alert Channels explicitly from CHANNEL_ID_HACK
+        # It expects a comma-separated string in .env (e.g., "11111, 22222")
+        hack_channel_env = os.getenv('CHANNEL_ID_HACK', '')
+        
+        # Convert string into a list of integers
+        self.target_channel_ids = [int(id.strip()) for id in hack_channel_env.split(',') if id.strip().isdigit()]
         
         # Start the loop immediately
         self.check_new_hackathons.start()
@@ -52,7 +58,6 @@ class Hackathon(commands.Cog):
         # Remove HTML tags like <span>
         clean = re.compile('<.*?>')
         text = re.sub(clean, '', text)
-        # Decode unicode characters if necessary (though usually handled by json)
         return text.strip()
 
     def get_hackathons_from_api(self):
@@ -73,12 +78,11 @@ class Hackathon(commands.Cog):
             response = requests.get(url, headers=headers, params=params, timeout=10)
             if response.status_code == 200:
                 data = response.json()
-                # The API returns a dictionary with a 'hackathons' list
                 raw_hackathons = data.get('hackathons', [])
                 
                 formatted_data = []
                 for item in raw_hackathons:
-                    # 1. Thumbnail URL fix (add https:)
+                    # 1. Thumbnail URL fix
                     thumbnail_url = item.get('thumbnail_url', '')
                     if thumbnail_url and thumbnail_url.startswith("//"):
                         thumbnail_url = "https:" + thumbnail_url
@@ -87,7 +91,7 @@ class Hackathon(commands.Cog):
                     location_info = item.get('displayed_location', {})
                     location = location_info.get('location', 'Online')
                     
-                    # 3. Extract Themes (List of Dicts -> List of Names)
+                    # 3. Extract Themes
                     raw_themes = item.get('themes', [])
                     theme_names = [t['name'] for t in raw_themes]
                     
@@ -177,6 +181,7 @@ class Hackathon(commands.Cog):
             await ctx.send(f"✅ Database updated with {new_count} new item(s).")
         else:
             await ctx.send("👌 These hackathons are already in the database.")
+
     # ====================================================
     # 📊 Command: !db (Check Database)
     # ====================================================
@@ -232,9 +237,9 @@ class Hackathon(commands.Cog):
         await self.bot.wait_until_ready()
         print("\n🔄 [Auto] Checking for new hackathons...")
         
-        channel = self.bot.get_channel(self.target_channel_id)
-        if not channel:
-            print(f"⚠️ [Error] Could not find channel with ID: {self.target_channel_id}")
+        # ✅ Check if HACK channels are configured
+        if not self.target_channel_ids:
+            print("⚠️ [Warning] No CHANNEL_ID_HACK configured in .env")
             return
 
         hackathons = self.get_hackathons_from_api()
@@ -251,18 +256,23 @@ class Hackathon(commands.Cog):
 
             try:
                 embed = self.create_embed(item)
-
-
-                await channel.send("New Hackathon Alert!")
                 
-                await channel.send(embed=embed)
-                print(f"✅ Alert Sent: {item['title']}")
+                # ✅ [Feature Update] Broadcast to ALL HACK channels
+                for channel_id in self.target_channel_ids:
+                    channel = self.bot.get_channel(channel_id)
+                    if channel:
+                        await channel.send("New Hackathon Alert!")
+                        await channel.send(embed=embed)
+                        print(f"✅ Alert sent to channel: {channel.name} ({channel_id})")
+                    else:
+                        print(f"⚠️ Could not find channel {channel_id}")
                 
                 self.sent_urls.append(url)
                 new_count += 1
                 await asyncio.sleep(1)
+                
             except Exception as e:
-                print(f"❌ Error sending message: {e}")
+                print(f"❌ Error broadcasting message: {e}")
                 traceback.print_exc()
 
         if new_count > 0:

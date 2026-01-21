@@ -1,4 +1,4 @@
-![Version](https://img.shields.io/badge/version-v1.02--alpha-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-v1.03-blue?style=for-the-badge)
 ![Status](https://img.shields.io/badge/status-active-success?style=for-the-badge)
 ---
 
@@ -61,9 +61,7 @@ pip install -r requirements.txt
 3. **Configure Environment Variables**
 Create a `.env` file in the root directory and enter your bot token.
 ```env
-DISCORD_TOKEN=your_bot_token_here
-CHANNEL_ID=the_channel_ID_run_the_bot
-ENABLED_COGS=the_features_you_test
+ASK JUN
 ```
 
 
@@ -74,6 +72,17 @@ python main.py
 ---
 
 ## 📝 Update Log
+
+### [v1.03-alpha] - 2026-01-21
+**Broadcast System & Environment Optimization**
+
+- **📡 Multi-Channel Support**: Implemented a broadcasting system to send hackathon alerts to multiple channels (e.g., Test Channel + Public Alert Channel) simultaneously.
+- **🔐 Environment Variable Restructuring**:
+  - Separated `CHANNEL_ID` into `CHANNEL_ID_STARTUP` (Admin logs) and `CHANNEL_ID_HACK` (Public alerts) for better channel management.
+  - Startup logs are now strictly sent only to the `CHANNEL_ID_STARTUP` to prevent noise in public channels.
+- **🛠 Code Maintenance**:
+  - Centralized version management in `main.py` using `BOT_VERSION` variable.
+  - Fixed logic to ensure the `!hack` manual command also respects the broadcast list.
 
 ### [v1.02-alpha] - 2026-01-08
 **Major Feature Update & UI Overhaul**

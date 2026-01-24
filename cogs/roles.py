@@ -1,11 +1,32 @@
 import discord
+import os
 from discord.ext import commands
 import asyncio
+
+ALLOWED_ROLES = {
+    r.strip()
+    for r in os.getenv("ALLOWED_ROLES", "").split(",")
+    if r.strip()
+}
 
 class Roles(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    async def cog_check(self, ctx: commands.Context) -> bool:
+        if ctx.guild is None:
+            return False
+        user_roles = {role.name for role in ctx.author.roles}
+        return not ALLOWED_ROLES.isdisjoint(user_roles)
+
+    async def cog_check_failure(self, ctx: commands.Context, error: Exception):
+        if isinstance(error, commands.CheckFailure):
+            allowed = ", ".join(sorted(ALLOWED_ROLES)) if ALLOWED_ROLES else "configured roles"
+            await ctx.send(
+                f"❌ You don't have permission to use this command.\n"
+                f"Required role(s): **{allowed}**"
+            )
+            
     def _bot_can_manage(self, guild: discord.Guild, role: discord.Role) -> bool:
         me = guild.me
         if me is None:
@@ -20,7 +41,6 @@ class Roles(commands.Cog):
             yield m
 
     @commands.command(name="role_add")
-    @commands.has_permissions(manage_roles=True)
     async def role_add(self, ctx, member: discord.Member, *, role: discord.Role):
         if ctx.guild is None:
             return await ctx.send("This command only works in a server.")
@@ -40,7 +60,6 @@ class Roles(commands.Cog):
             await ctx.send(f"HTTP error: {e}")
 
     @commands.command(name="role_remove")
-    @commands.has_permissions(manage_roles=True)
     async def role_remove(self, ctx, member: discord.Member, *, role: discord.Role):
         if ctx.guild is None:
             return await ctx.send("This command only works in a server.")
@@ -57,7 +76,6 @@ class Roles(commands.Cog):
             await ctx.send(f"HTTP error: {e}")
 
     @commands.command(name="role_all_add")
-    @commands.has_permissions(manage_roles=True)
     async def role_all_add(self, ctx, *, role: discord.Role):
         if ctx.guild is None:
             return await ctx.send("This command only works in a server.")
@@ -96,7 +114,6 @@ class Roles(commands.Cog):
         await status.edit(content=f"Done. Added: {added}, Skipped: {skipped}, Failed: {failed}")
 
     @commands.command(name="role_all_remove")
-    @commands.has_permissions(manage_roles=True)
     async def role_all_remove(self, ctx, *, role: discord.Role):
         if ctx.guild is None:
             return await ctx.send("This command only works in a server.")

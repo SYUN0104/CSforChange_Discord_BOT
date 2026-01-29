@@ -40,7 +40,7 @@ async def on_ready():
             if target_channel:
                 # ✅ Use BOT_VERSION variable
                 await target_channel.send(f"🚀 **System Online:** CSforChange Helper {BOT_VERSION} is ready!")
-                print(f"✅ Startup msg sent to Test Channel: {target_channel.name}")
+                print(f"✅ Startup msg sent to Test Channel : {target_channel.name}")
             else:
                 print(f"⚠️ Could not find Test Channel with ID {STARTUP_CHANNEL_ID}")
         except Exception as e:
